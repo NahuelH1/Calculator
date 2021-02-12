@@ -4,89 +4,101 @@ import QuerySelector from "./QuerySelector.js"
 class Calculadora{ 
     constructor()
     {
-     this.numberA = null;
-     this.numberB = null;
-     this.operator = null;
+     this.calcArray = [];
      this.visor = "";
      this.resultado = false;
+     this.calculatorMotor.call(this);
+     
     }
-    controladorDeVisor(Agregado, reset = false)
+    actualizarVisor()
     {
       let visorHTML = QuerySelector.visor();
-        if(!reset)
-        {
-          visorHTML.textContent = visorHTML.textContent + Agregado;
-        }else
-        {
-          visorHTML.textContent = Agregado;
-        }
+      const textoVisor = this.calcArray.join(' ');
+      visorHTML.textContent = textoVisor;
+      console.log(this.calcArray);
     }
    
     reset()
     {
-      this.controladorDeVisor( 0, true);
-      this.numberA = null;
-      this.numberB = null;
-      this.operator = null;
+      this.calcArray = []
+      this.actualizarVisor();
     }
-
-   
-    numberSelect(newNumber)
+    
+    calculatorMotor()
     {
-
-      if(this.operator)
-      {
-        if(this.numberB)
+      function* gen() {
+      while(true)
+     {
+        const newItem = yield;
+        if(typeof(newItem) == "number")
         {
-          this.numberB = this.numberB + newNumber;
-          this.controladorDeVisor(newNumber);
+          
+          this.arrayAddNumber(newItem)
+           
         }else
         {
-          this.numberB = newNumber;
-          this.controladorDeVisor(newNumber);
+          this.arrayAddOperator(newItem)
         }
+        this.actualizarVisor();
+      }
+     }
+      this.instanciaGenerador = gen.call(this);
+      this.instanciaGenerador.next();
+
+    }
+
+    arrayAddNumber(newItem)
+    {
+      const lastItem = this.calcArray.pop();
+      if(typeof(lastItem) == "number")
+      {
+        this.calcArray.push(lastItem*10+newItem)
       }else
       {
-        if(!this.resultado)
-        {
-          if(this.numberA)
-          {
-            this.numberA = this.numberA + newNumber;
-            this.controladorDeVisor(newNumber);
-          }else
-          {
-            this.numberA = newNumber;
-            this.controladorDeVisor(newNumber, true);
-          } 
-        }else
-        {
-          this.numberA = newNumber;
-          this.controladorDeVisor(newNumber, true);
-          this.resultado = false;
+        if(lastItem) this.calcArray.push(lastItem);
+         this.calcArray.push(newItem);
+      }
+    }
 
-        }
-      
-      }
-      this.mostrarDatosInternos();
-    }
-    operatorSelect(newOperator)
+    arrayAddOperator(newItem)
     {
-      if(!this.operator)
+      const lastItem = this.calcArray.pop();
+      if(typeof(lastItem) == "number")
       {
-        this.operator = newOperator;
-        this.controladorDeVisor(newOperator);
-      }
-      
+        this.calcArray.push(lastItem);
+        this.calcArray.push(newItem);
+      }else
+      {
+        this.calcArray.push(lastItem);
+        alert("No puedes agregar dos operadores seguidos");
     }
+     }
+     
+    numberOrOperatorSelect(newNumber)
+    {
+      this.instanciaGenerador.next(newNumber)
+    }
+
+    
     resultSelect()
     {
- 
-      if(this.numberB)
-      {
-        let result;
-        const numA = this.numberA;
-        const numB = this.numberB;
-        switch(this.operator)
+       this.operation("^");
+       this.operation("*");
+       this.operation("/");
+       this.operation("+");
+       this.operation("-");
+       this.resultado = true;
+    }
+
+    operation(operator)
+    {
+      while(this.calcArray.find(element => element == operator))
+        {
+          let elementIndex = this.calcArray.findIndex(element => element == operator);
+          const numA = this.calcArray[elementIndex - 1];
+          const numB = this.calcArray[elementIndex + 1];
+          let result;
+         switch(operator)
         {
           case "+": result = Operations.Add(numA, numB); break;
           case "-": result = Operations.subtract(numA, numB);break;
@@ -95,20 +107,11 @@ class Calculadora{
           case "^": result = Operations.power(numA, numB);break;
           default: console.log("ERROR"); break; 
         }
-        this.controladorDeVisor(result, true)
-  
-           this.numberA = result;
-           this.numberB = null;
-           this.operator = null;
-           this.resultado = true;
-      }
+          this.calcArray.splice(elementIndex-1, 3, result);
+          this.actualizarVisor();
 
-      
-    }
-    mostrarDatosInternos()
-    {
-      console.log("------------")
-      console.log("numberA: "+ this.numberA + "\nnumberB " + this.numberB);
+        }
     }
   }
+
   export default Calculadora
